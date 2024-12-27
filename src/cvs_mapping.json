@@ -4,7 +4,7 @@
         "cv_id": {
           "type": "text"
         },
-        "full_text": {
+        "profile": {
           "type": "text"
         },
         "experience": {

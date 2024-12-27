@@ -34,7 +34,7 @@ class ElasticHandler:
                     "cv_id": {
                         "type": "keyword"  # Exact match field
                     },
-                    "full_text": {
+                    "profile": {
                         "type": "text",
                         "analyzer": "cv_analyzer",
                         "search_analyzer": "cv_analyzer"
@@ -133,7 +133,7 @@ class ElasticHandler:
                 "should": [
                     {
                         "match": {
-                            "full_text": {
+                            "profile": {
                                 "query": jd_query,
                                 "boost": 1.0
                             }

@@ -9,7 +9,7 @@ elastic = ElasticHandler()
 #Process CV và index
 cv_data1 = {
     "cv_id": "12345",
-    "full_text": "John Doe is a Python developer with experience in Elasticsearch and Machine Learning...",
+    "profile": "John Doe is a Python developer with experience in Elasticsearch and Machine Learning...",
     "skills": ["Python", "Elasticsearch", "Machine Learning"],
     "experience": [
         {
@@ -50,7 +50,7 @@ cv_data1 = {
 }
 cv_data2 = {
     "cv_id": "123",
-    "full_text": "...",
+    "profile": "Acknowledge Python and SQL",
     "skills": ["Elasticsearch", "Machine Learning"],
     "experience": [
         {
@@ -89,7 +89,7 @@ doc_id = elastic.index_cv(cv_data2)
 #doc_id = elastic.index_cv(transformed_data)
 
 # Search CVs
-results = elastic.search_cv("Acknowledge Elasticsearch and Machine Learning is plus")
+results = elastic.search_cv("Python")
 print(results)
 
 # print(transformed_data["skills"])
