@@ -87,21 +87,40 @@ class ElasticHandler:
         }
 
         try:
+            # Kiểm tra nếu index chưa tồn tại
             if not self.es.indices.exists(index=self.index_name):
                 self.es.indices.create(index=self.index_name, body=settings)
                 self.logger.info(f"Created index {self.index_name}")
             else:
-                self.logger.info(f"Index {self.index_name} already exists")
+                # Kiểm tra index đã tồn tại
+                self.logger.info(f"Index {self.index_name} already exists. Proceeding to check settings and mappings.")
+                
+                # Kiểm tra sự khác biệt giữa mapping và settings đã tạo (nếu cần thiết)
+                current_mapping = self.es.indices.get_mapping(index=self.index_name)
+                # Có thể thêm code kiểm tra sự thay đổi giữa current_mapping và settings ở đây.
+
         except Exception as e:
-            self.logger.error(f"Error creating index: {str(e)}")
-            raise
+            self.logger.error(f"Error creating index {self.index_name}: {str(e)}")
+            raise  # Để lỗi được phát hiện và xử lý bởi các phần khác
     
     def index_cv(self, cv_data: Dict) -> str:
-        """Index a single CV document."""
+        """Index a single CV document using cv_id as the document id."""
         try:
+            document_id = cv_data.get('cv_id')
+        
+            if not document_id:
+                self.logger.error("cv_id is missing in the provided CV data")
+                raise ValueError("cv_id is required for indexing")
+            
+            # Kiểm tra xem tài liệu đã tồn tại chưa
+            if self.es.exists(index=self.index_name, id=document_id):
+                self.logger.info(f"Document with cv_id {document_id} already exists. Skipping indexing.")
+                return document_id  # Hoặc bạn có thể xóa tài liệu cũ và index lại nếu cần
+            
             # Debug: log the data structure before sending to Elasticsearch
-            self.logger.info(f"Indexing CV data: {cv_data}")
-            response = self.es.index(index=self.index_name, document=cv_data)
+            self.logger.info(f"Indexing CV data with cv_id {document_id}: {cv_data}")
+            
+            response = self.es.index(index=self.index_name, id=document_id, document=cv_data)
             return response['_id']
         except Exception as e:
             self.logger.error(f"Error indexing document: {str(e)}")
@@ -134,7 +153,7 @@ class ElasticHandler:
                             "query": {
                                 "match": {
                                     "experience.description": {
-                                        "query": "python developer",
+                                        "query": jd_query,
                                         "boost": 1.5
                                     }
                                 }
@@ -152,12 +171,3 @@ class ElasticHandler:
         except Exception as e:
             self.logger.error(f"Error searching documents: {str(e)}")
             raise
-
-# # Ví dụ sử dụng
-# if __name__ == "__main__":
-#     try:
-#         elastic = ElasticHandler()
-#         elastic.create_index()
-#         # Thực hiện các thao tác khác với Elasticsearch
-#     except Exception as e:
-#         print(f"An error occurred: {e}")

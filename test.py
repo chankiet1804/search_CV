@@ -7,7 +7,7 @@ processor = Processor()
 elastic = ElasticHandler()
 
 #Process CV và index
-cv_data = {
+cv_data1 = {
     "cv_id": "12345",
     "full_text": "John Doe is a Python developer with experience in Elasticsearch and Machine Learning...",
     "skills": ["Python", "Elasticsearch", "Machine Learning"],
@@ -48,16 +48,48 @@ cv_data = {
         "language": "English"
     }
 }
+cv_data2 = {
+    "cv_id": "123",
+    "full_text": "...",
+    "skills": ["Elasticsearch", "Machine Learning"],
+    "experience": [
+        {
+            "title": "SPython Developer",
+            "company": "FPT",
+            "duration": "2018-2023",
+            "description": "Developed and maintained web applications, led a team of developers..."
+        },
+        
+    ],
+    "education": [
+        {
+            "degree": "Master's in Computer Science",
+            "institution": "UIT",
+            "year": "2015-06-15"
+        },
+    ],
+    "contact": {
+        "email": "hkaido@example.com",
+        "phone": "04934923242",
+        "location": "Nagasaki, Japan"
+    },
+    "metadata": {
+        "last_updated": "2023-12-01",
+        "file_name": "jhkaido_cv.pdf",
+        "language": "English"
+    }
+}
 #pdf_path = './data/ACCOUNTANT/10674770.pdf'
 #cv_data = processor.process_cv('./data/ACCOUNTANT/10674770.pdf')
 #transformed_data = transform.transform_data(cv_data,pdf_path)
 
 # Index processed CV data
-doc_id = elastic.index_cv(cv_data)
+doc_id = elastic.index_cv(cv_data1)
+doc_id = elastic.index_cv(cv_data2)
 #doc_id = elastic.index_cv(transformed_data)
 
 # Search CVs
-results = elastic.search_cv("machine learning engineer")
+results = elastic.search_cv("Acknowledge Elasticsearch and Machine Learning is plus")
 print(results)
 
 # print(transformed_data["skills"])
