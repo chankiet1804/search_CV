@@ -1,11 +1,10 @@
-from src.pdf_processor import CVProcessor
+from src.pdf_processor import Processor
 from src.elastic_handler import ElasticHandler
-from src.transform_data import Transform
+
 
 # Initialize components
-processor = CVProcessor()
+processor = Processor()
 elastic = ElasticHandler()
-transform = Transform()
 
 #Process CV và index
 cv_data = {
