@@ -84,13 +84,13 @@ class CVProcessor:
     
 
 # Test
-processor = CVProcessor()
-cv_data = processor.process_cv( './data/ACCOUNTANT/10674770.pdf')
-print("\nEducation Section:")
-print(cv_data['education'])
+# processor = CVProcessor()
+# cv_data = processor.process_cv( './data/ACCOUNTANT/10674770.pdf')
+# print("\nEducation Section:")
+# print(cv_data['education'])
 
-print("\nExperience Section:")
-print(cv_data['experience'])
+# print("\nExperience Section:")
+# print(cv_data['experience'])
 
-print("\nSkills Section:")
-print(cv_data['skills'])
+# print("\nSkills Section:")
+# print(cv_data['skills'])
