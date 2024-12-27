@@ -1,5 +1,5 @@
-from src.pdf_processor import Processor
-from src.elastic_handler import ElasticHandler
+from backend.app.pdf_processor import Processor
+from backend.app.elastic_handler import ElasticHandler
 
 
 # Initialize components
