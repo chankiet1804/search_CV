@@ -1,6 +1,6 @@
 from flask import Flask
 from flask_cors import CORS
-from backend.config import Config
+from config import Config
 from .routes import api
 
 def create_app(config_class=Config):
