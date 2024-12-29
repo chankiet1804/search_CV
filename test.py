@@ -1,7 +1,6 @@
 from backend.app.pdf_processor import Processor
 from backend.app.elastic_handler import ElasticHandler
 
-
 # Initialize components
 processor = Processor()
 elastic = ElasticHandler()
@@ -79,17 +78,17 @@ cv_data2 = {
         "language": "English"
     }
 }
-#pdf_path = './data/ACCOUNTANT/10674770.pdf'
-#cv_data = processor.process_cv('./data/ACCOUNTANT/10674770.pdf')
+pdf_path = '/home/kiet-22520717/Nam3/search_cv/search_CV/backend/app/Example_CV.pdf'
+cv_data = processor.process_pdf(pdf_path)
 #transformed_data = transform.transform_data(cv_data,pdf_path)
 
 # Index processed CV data
 doc_id = elastic.index_cv(cv_data1)
 doc_id = elastic.index_cv(cv_data2)
-#doc_id = elastic.index_cv(transformed_data)
+doc_id = elastic.index_cv(cv_data)
 
 # Search CVs
-results = elastic.search_cv("Python")
+results = elastic.search_cv("Software Development Life Cycle")
 print(results)
 
 # print(transformed_data["skills"])

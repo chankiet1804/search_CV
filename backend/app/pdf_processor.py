@@ -221,7 +221,7 @@ class Processor:
                 "location": ""
             },
             "metadata": {
-                "last_updated": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "last_updated": datetime.now().isoformat(),
                 "file_name": pdf_path.split('\\')[-1] if '\\' in pdf_path else pdf_path.split('/')[-1],
                 "language": "English"
             }
@@ -243,15 +243,15 @@ class Processor:
 
         return transformed
 
-    def process_pdf(self, pdf_path: str) -> str:
+    def process_pdf(self, pdf_path: str) -> Dict:
         """Process PDF and return JSON string."""
         raw_text = self.extract_text_from_pdf(pdf_path)
         resume = self.parse_resume(raw_text)
         extract_data = self.transform_sections(resume, pdf_path)
-        return json.dumps(extract_data, indent=2, ensure_ascii=False)
+        return extract_data
 
 if __name__ == "__main__":
     processor = Processor()
-    pdf_path = 'C:\\Users\\MINH LOC\\Do an TVanTT\\search_CV\\data\\Example CV.pdf'  # Update with your actual path
-    json_output = processor.process_pdf(pdf_path)
-    print(json_output)
+    pdf_path = '/home/kiet-22520717/Nam3/search_cv/search_CV/backend/app/Example_CV.pdf'
+    output = processor.process_pdf(pdf_path)
+    print(output)
