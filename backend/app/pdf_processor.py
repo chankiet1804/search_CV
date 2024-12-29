@@ -1,6 +1,5 @@
 import pdfplumber
 import re
-import json
 from typing import Dict, List
 import spacy
 from datetime import datetime
@@ -250,8 +249,8 @@ class Processor:
         extract_data = self.transform_sections(resume, pdf_path)
         return extract_data
 
-if __name__ == "__main__":
-    processor = Processor()
-    pdf_path = '/home/kiet-22520717/Nam3/search_cv/search_CV/backend/app/Example_CV.pdf'
-    output = processor.process_pdf(pdf_path)
-    print(output)
+# if __name__ == "__main__":
+#     processor = Processor()
+#     pdf_path = '/home/kiet-22520717/Nam3/search_cv/search_CV/backend/app/Example_CV.pdf'
+#     output = processor.process_pdf(pdf_path)
+#     print(output)

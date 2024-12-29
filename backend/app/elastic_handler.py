@@ -77,7 +77,7 @@ class ElasticHandler:
                     },
                     "metadata": {
                         "properties": {
-                            "last_updated": {"type": "text"},
+                            "last_updated": {"type": "date"},
                             "file_name": {"type": "keyword"},
                             "language": {"type": "keyword"}
                         }
@@ -168,6 +168,112 @@ class ElasticHandler:
             # Đặt truy vấn bên trong đối tượng 'body'
             response = self.es.search(index=self.index_name, body={"query": query}, size=size)
             return [hit['_source'] for hit in response['hits']['hits']]
+        except Exception as e:
+            self.logger.error(f"Error searching documents: {str(e)}")
+            raise
+
+    def search_cv_by_jd(self, jd_data: Dict, size: int = 10, min_score: float = 1.0) -> List[Dict]:
+        """Search CVs based on job description data with enhanced matching."""
+        
+        # Tách required skills thành list và chuẩn hóa
+        required_skills = [
+            skill.strip().lower() 
+            for skill in jd_data.get('Required skills and qualifications', '').split(',')
+            if skill.strip()
+        ]
+        
+        query = {
+            "bool": {
+                "should": [  # Sử dụng should thay vì must để linh hoạt hơn
+                    # Match với required skills (trọng số cao nhất)
+                    {
+                        "terms": {
+                            "skills.keyword": required_skills,
+                            "boost": 2.0  # Giảm xuống từ 3.0
+                        }
+                    },
+                    # Match với profile
+                    {
+                        "match": {
+                            "profile": {
+                                "query": f"{jd_data.get('Objectives of this role', '')} {jd_data.get('Responsibilities', '')}",
+                                "operator": "or",  # Thay đổi từ and sang or
+                                "minimum_should_match": "30%",  # Giảm xuống từ 70%
+                                "boost": 1.0
+                            }
+                        }
+                    },
+                    # Match với preferred skills
+                    {
+                        "match": {
+                            "skills.text": {
+                                "query": jd_data.get('Preferred skills and qualifications', ''),
+                                "boost": 1.5
+                            }
+                        }
+                    },
+                    # Match với experience
+                    {
+                        "nested": {
+                            "path": "experience",
+                            "query": {
+                                "bool": {
+                                    "should": [
+                                        {
+                                            "match": {  # Đổi từ match_phrase sang match
+                                                "experience.title": {
+                                                    "query": jd_data.get('Objectives of this role', ''),
+                                                    "boost": 1.5
+                                                }
+                                            }
+                                        },
+                                        {
+                                            "match": {
+                                                "experience.description": {
+                                                    "query": f"{jd_data.get('Responsibilities', '')} {jd_data.get('Required skills and qualifications', '')}",
+                                                    "operator": "or",  # Thay đổi từ and sang or
+                                                    "minimum_should_match": "30%",  # Giảm xuống từ 60%
+                                                    "boost": 1.0
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            },
+                            "score_mode": "max"  # Thay đổi từ avg sang max
+                        }
+                    }
+                ],
+                "minimum_should_match": 1  # Giảm xuống từ 2, chỉ cần match 1 điều kiện
+            }
+        }
+        
+        try:
+            response = self.es.search(
+                index=self.index_name,
+                body={
+                    "query": query,
+                    "min_score": min_score,
+                    "_source": True,
+                    "sort": [
+                        {"_score": {"order": "desc"}}
+                    ]
+                },
+                size=size
+            )
+            
+            # Thêm debug info
+            self.logger.info(f"Total hits: {response['hits']['total']['value']}")
+            self.logger.info(f"Max score: {response['hits']['max_score']}")
+            
+            results = []
+            for hit in response['hits']['hits']:
+                result = hit['_source']
+                result['search_score'] = hit['_score']
+                results.append(result)
+                
+            return results
+            
         except Exception as e:
             self.logger.error(f"Error searching documents: {str(e)}")
             raise

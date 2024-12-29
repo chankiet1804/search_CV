@@ -87,8 +87,17 @@ doc_id = elastic.index_cv(cv_data1)
 doc_id = elastic.index_cv(cv_data2)
 doc_id = elastic.index_cv(cv_data)
 
+jd_data = {
+    "About company": "Công ty ABC...",
+    "Objectives of this role": "Junio Software Developer",
+    "Responsibilities": "Participate in the full software development lifecycle, including analysis, design, test, and delivery",
+    "Required skills and qualifications": "Python, SQL, Cloud, UI/UX, System design, Linux",
+    "Preferred skills and qualifications": "Docker, Git"
+}
+
 # Search CVs
-results = elastic.search_cv("Software Development Life Cycle")
+#results = elastic.search_cv("Software Development Life Cycle")
+results = elastic.search_cv_by_jd(jd_data,min_score=2.0)
 print(results)
 
 # print(transformed_data["skills"])
