@@ -1,5 +1,5 @@
-from backend.app.pdf_processor import Processor
-from backend.app.elastic_handler import ElasticHandler
+from source.pdf_processor import Processor
+from source.elastic_handler import ElasticHandler
 
 # Initialize components
 processor = Processor()
@@ -78,21 +78,23 @@ cv_data2 = {
         "language": "English"
     }
 }
-pdf_path = '/home/kiet-22520717/Nam3/search_cv/search_CV/backend/app/Example_CV.pdf'
+pdf_path = './Data/Test1/CV1.pdf'
 cv_data = processor.process_pdf(pdf_path)
+pdf_path2 = './Data/Test1/CV2.pdf'
+cv_data3 = processor.process_pdf(pdf_path2)
 #transformed_data = transform.transform_data(cv_data,pdf_path)
 
 # Index processed CV data
 doc_id = elastic.index_cv(cv_data1)
 doc_id = elastic.index_cv(cv_data2)
 doc_id = elastic.index_cv(cv_data)
-
+doc_id = elastic.index_cv(cv_data3)
 jd_data = {
     "About company": "Công ty ABC...",
     "Objectives of this role": "Junio Software Developer",
     "Responsibilities": "Participate in the full software development lifecycle, including analysis, design, test, and delivery",
-    "Required skills and qualifications": "Python, SQL, Cloud, UI/UX, System design, Linux",
-    "Preferred skills and qualifications": "Docker, Git"
+    "Required skills and qualifications": "SQL, Cloud, UI/UX, System design, Linux",
+    "Preferred skills and qualifications": "Docker"
 }
 
 # Search CVs
