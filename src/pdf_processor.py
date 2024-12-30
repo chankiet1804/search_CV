@@ -252,6 +252,6 @@ class Processor:
 
 if __name__ == "__main__":
     processor = Processor()
-    pdf_path = 'C:\\Users\\MINH LOC\\Do an TVanTT\\search_CV\\data\\Example CV.pdf'  # Update with your actual path
+    pdf_path = 'C:\\Users\\MINH LOC\\Do an TVanTT\\search_CV\\Example CV.pdf'  # Update with your actual path
     json_output = processor.process_pdf(pdf_path)
     print(json_output)
