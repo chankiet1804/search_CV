@@ -1,5 +1,5 @@
-# from src.pdf_processor import Processor
-# from src.elastic_handler import ElasticHandler
+from src.pdf_processor import Processor
+from src.elastic_handler import ElasticHandler
 
 
 # # Initialize components
@@ -9,7 +9,7 @@
 #Process CV và index
 cv_data = {
     "cv_id": "12345",
-    "profile": "John Doe is a Python developer with experience in Elasticsearch and Machine Learning...",
+    "full_text": "John Doe is a Python developer with experience in Elasticsearch and Machine Learning...",
     "skills": ["Python", "Elasticsearch", "Machine Learning"],
     "experience": [
         {
@@ -53,12 +53,12 @@ cv_data = {
 #transformed_data = transform.transform_data(cv_data,pdf_path)
 
 # Index processed CV data
-# doc_id = elastic.index_cv(cv_data)
-# #doc_id = elastic.index_cv(transformed_data)
+doc_id = elastic.index_cv(cv_data)
+#doc_id = elastic.index_cv(transformed_data)
 
-# # Search CVs
-# results = elastic.search_cv("machine learning engineer")
-# print(results)
+# Search CVs
+results = elastic.search_cv("machine learning engineer")
+print(results)
 
 # print(transformed_data["skills"])
 # print("-------------------------------------------------------------------------------")
