@@ -98,6 +98,24 @@ def get_pdf(doc_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/view_pdf/<doc_id>', methods=['GET'])
+def view_pdf(doc_id):
+    try:
+        # Lấy tài liệu từ Elasticsearch dựa trên doc_id
+        response = es_handler.get_document(index='cvs', doc_id=doc_id)
+        # Giả sử bạn lưu trữ PDF ở dạng base64 trong Elasticsearch
+        pdf_data = response['_source']['cv_data']
+
+        # Giải mã base64 và chuyển thành byte stream
+        pdf_bytes = base64.b64decode(pdf_data)
+        pdf_io = io.BytesIO(pdf_bytes)
+
+        # Trả về PDF trực tiếp trong trình duyệt
+        return send_file(pdf_io, mimetype='application/pdf')
+    
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 
 if __name__ == '__main__':
     # Create Elasticsearch index on startup

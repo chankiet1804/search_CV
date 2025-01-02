@@ -160,10 +160,19 @@
                     div.innerHTML = `
                         <div class="flex justify-between items-start">
                             <h3 class="font-semibold">${fileName}</h3>
-                            <span class="text-sm text-gray-600">Match Score: ${score}%</span>
+                            <span class="text-sm text-gray-600">Match Score: ${score}</span>
                         </div>
                         <div class="mt-2 text-sm">
-                            <div><strong>CV Preview:</strong> <a href="/pdf/${cvId}" target="_blank" class="text-blue-500">Click to download PDF</a></div>
+                            <div class="mt-2">
+                                <strong>Preview CV:</strong>
+                                <!-- Nút "Xem CV" -->
+                                <a href="/view_pdf/${cvId}" target="_blank" class="text-blue-500">Click to view CV</a>
+                            </div>
+                            <div>
+                                <strong>Download CV:</strong>
+                                <!-- Nút "Tải về CV" -->
+                                <a href="/pdf/${cvId}" class="text-blue-500" download>Click to download PDF</a>
+                            </div>                        
                         </div>
                     `;
                     
