@@ -35,7 +35,10 @@ class Processor:
         profile = re.search(r'Profile(.*?)(?=Experiences)', text, re.DOTALL)
         experiences = re.search(r'Experiences(.*?)(?=Education)', text, re.DOTALL)
         education = re.search(r'Education(.*?)(?=Skills)', text, re.DOTALL)
-        skills = re.search(r'Skills:(.*)', text, re.DOTALL)
+        skills = re.search(r'Skills\s*(.*?)(?=$)', text, re.DOTALL)  # Tìm từ Skills đến hết văn bản
+    
+        if skills:
+            sections['Skills'] = skills.group(1).strip()
 
         if contact_info:
             sections['Contact Information'] = contact_info.group(1).strip()
@@ -60,6 +63,8 @@ class Processor:
         # Clean each skill and filter out empty strings
         skills = [self.clean_text(skill) for skill in skills if skill.strip()]
         # Split skills that contain 'Familiarity with' or similar phrases
+        skills = [skill for skill in skills if skill and skill != ":"]  # {{ edit_1 }}
+
         cleaned_skills = []
         for skill in skills:
             parts = re.split(r'(?:Familiarity with|Knowledge in|Understanding of)', skill)
@@ -72,10 +77,10 @@ class Processor:
 
         experience_list = []
         # Split by "Entry Level" or any position title pattern
-        entries = re.split(r'(?:\n|^)(?=(?:Entry Level|Senior|Junior|Associate|Lead|Principal|Software|Developer|Engineer))', experiences)
+        pattern = r'(?:\n|^)(?=(?:Entry Level|Senior|Content Creator|Database Administrator|Backend Development|Content Marketing|Digital Conten|Junior|Associate|Lead|Principal|Software|Developer|Engineer|Intern|Support|Finance Assistant|Technical).*?(?:Engineer|Developer|Intern|Specialist|Analyst|Manager|Lead)\b)'
+        entries = re.split(pattern, experiences)
         entries = [entry.strip() for entry in entries if entry.strip()]
 
-        current_exp = {}
         for entry in entries:
             try:
                 lines = [line.strip() for line in entry.split('\n') if line.strip()]
@@ -90,10 +95,18 @@ class Processor:
                 }
 
                 # First line is typically the title
-                if lines[0]:
-                    experience_dict['title'] = self.clean_text(lines[0])
+                title_line = lines[0].split('•')[0].strip() 
+                # Loại bỏ bullet points nếu có
+                if any(keyword in title_line.lower() for keyword in ['engineer', 'developer', 'intern', 'specialist', 'analyst', 'manager', 'lead']):
+                    experience_dict['title'] = self.clean_text(title_line)
+                
+                description_started = False
                 
                 for line in lines[1:]:  # Start from second line
+                    # line = line.split('•')[0].strip() if '•' or '◦'or '-' in line else line
+                    
+                    # # Remove bullet point 'o' from the line
+                    # line = line.replace('o ', '')
                     if ': ' in line:
                         key, value = line.split(': ', 1)
                         key = key.lower()
@@ -101,13 +114,21 @@ class Processor:
                             experience_dict['company'] = self.clean_text(value)
                         elif 'duration' in key or 'period' in key:
                             experience_dict['duration'] = self.clean_text(value)
+                        elif 'description' in key:
+                            description_started = True
                     else:
                         # If the line contains "Description" or bullet points, it's part of description
+                        line = line.replace('•', '').strip()
+                        line = line.replace('o', '').strip()
                         if 'Description' in line or '\uf0b7' in line or '•' in line:
-                            if experience_dict['description']:
-                                experience_dict['description'] += " " + self.clean_text(line)
-                            else:
-                                experience_dict['description'] = self.clean_text(line)
+                            if description_started or 'description' in line.lower():
+                                description_started = True
+                                # Remove "Description:" if it exists
+                                line = line.replace("Description:", "").strip() 
+                                if experience_dict['description']:
+                                    experience_dict['description'] += " " + self.clean_text(line)
+                                else:
+                                    experience_dict['description'] = self.clean_text(line)
                         # If we don't have a company yet and it's not a description, it might be the company
                         elif not experience_dict['company'] and not experience_dict['duration']:
                             experience_dict['company'] = self.clean_text(line)
@@ -129,14 +150,14 @@ class Processor:
                 continue
 
         return experience_list
-
+        
     def process_education(self, education_text: str) -> List[Dict[str, str]]:
         """Process education information into a structured format."""
         if not education_text:
             return []
 
         education_list = []
-        entries = re.split(r'\n\n|\n(?=(?:Bachelor|Master|Ph\.D|MBA|Associate|Diploma|Certificate))', education_text)
+        entries = re.split(r'\n\n|\n(?=(?:Bachelor|Master|Ph\.D|MBA|Associate|Additional Training|Diploma|Certificate))', education_text)
     
         for entry in entries:
             try:
@@ -155,7 +176,7 @@ class Processor:
                     line = self.clean_text(line)
                     
                     # Extract degree
-                    if any(degree in line.lower() for degree in ['bachelor', 'master', 'ph.d', 'mba', 'associate']):
+                    if any(degree in line.lower() for degree in ['bachelor', 'master', 'ph.d', 'mba', 'associate','additional']):
                         education_dict['degree'] = line
                         
                         # Look ahead for institution in next line if current institution is empty
@@ -171,9 +192,11 @@ class Processor:
                         education_dict['institution'] = re.sub(r'^Institution:\s*', '', line, flags=re.IGNORECASE)
                     
                     # Extract duration
+                    
                     elif any(month in line.lower() for month in ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december']) or \
                         re.search(r'\b\d{4}\b', line):
-                        education_dict['duration'] = line.strip()
+                        # Remove "Duration:" prefix if present
+                        education_dict['duration'] = re.sub(r'^Duration:\s*', '', line.strip(), flags=re.IGNORECASE)
 
                 # Clean up any remaining prefixes in institution field
                 if education_dict['institution']:
@@ -190,24 +213,20 @@ class Processor:
         return education_list
 
     def extract_location(self, contact_text: str) -> str:
-        """Extract location information from contact text."""
         location_patterns = [
-            r'(?:Address|Location|City|State):\s*([^,\n]+(?:,\s*[^,\n]+)*)',
-            r'\b[A-Z][a-zA-Z\s]+,\s*[A-Z]{2}\s*\d{5}\b',  # City, State ZIP
-            r'\b[A-Z][a-zA-Z\s]+,\s*[A-Z]{2}\b',          # City, State
+            r'Location:\s*([^,\n]+(?:,\s*[^,\n]+)*)',
+            r'\b[A-Z][a-zA-Z\s]+,\s*[A-Z]{2}\s*\d{5}\b',
+            r'\b[A-Z][a-zA-Z\s]+,\s*[A-Z]{2}\b'
         ]
         
         for pattern in location_patterns:
             match = re.search(pattern, contact_text)
             if match:
-                # If the pattern has a group, use it, otherwise use the whole match
                 location = match.group(1) if len(match.groups()) > 0 else match.group(0)
                 return self.clean_text(location)
-        
         return ""
 
     def transform_sections(self, sections: Dict, pdf_path: str) -> Dict:
-        """Transform parsed sections into required format."""
         transformed = {
             "cv_id": "0000",
             "profile": self.clean_text(sections.get('Profile', '')),
@@ -220,26 +239,24 @@ class Processor:
                 "location": ""
             },
             "metadata": {
-                "last_updated": datetime.now().isoformat(),
-                "file_name": pdf_path.split('\\')[-1] if '\\' in pdf_path else pdf_path.split('/')[-1],
+                "last_updated": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "file_name": pdf_path.split('/')[-1],
                 "language": "English"
             }
         }
-
+        
         contact_text = sections.get('Contact Information', '')
         email_match = re.search(r'[\w\.-]+@[\w\.-]+', contact_text)
-        phone_match = re.search(r'[\+\d][\d\s-]{8,}', contact_text)
+        phone_match = re.search(r'\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}', contact_text)
         
         if email_match:
-            transformed['contact']['email'] = email_match.group(0).lower().strip()
+            transformed['contact']['email'] = email_match.group(0).strip()
         if phone_match:
-            phone = re.sub(r'\D', '', phone_match.group(0))  # Keep only digits
+            phone = re.sub(r'\D', '', phone_match.group(0))
             transformed['contact']['phone'] = phone
-            transformed['cv_id'] = phone[-4:] if len(phone) >= 4 else "0000"
-            
-        # Extract location
+            transformed['cv_id'] = phone[-4:]
+        
         transformed['contact']['location'] = self.extract_location(contact_text)
-
         return transformed
 
     def process_pdf(self, pdf_path: str) -> Dict:
@@ -251,6 +268,6 @@ class Processor:
 
 # if __name__ == "__main__":
 #     processor = Processor()
-#     pdf_path = '/home/kiet-22520717/Nam3/search_cv/search_CV/backend/app/Example_CV.pdf'
-#     output = processor.process_pdf(pdf_path)
-#     print(output)
+#     pdf_path = 'C:\\Users\\MINH LOC\\Do an TVanTT\\search_CV\\Data\Test1\\CV2.pdf'  # Update with your actual path
+#     json_output = processor.process_pdf(pdf_path)
+#     print(json_output)
