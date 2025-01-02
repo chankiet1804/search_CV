@@ -4,6 +4,7 @@ from typing import Dict, List
 import spacy
 from datetime import datetime
 import random
+import base64
 
 class Processor:
     def __init__(self):
@@ -52,10 +53,15 @@ class Processor:
         if skills:
             sections['Skills'] = skills.group(1).strip()
 
+
         return sections
     
 
     def transform_sections(self, sections: Dict, pdf_path: str) -> Dict:
+        # process_pdf path
+        with open(pdf_path, "rb") as f:
+            # Đọc tệp PDF dưới dạng nhị phân và mã hóa thành base64
+            pdf_data = base64.b64encode(f.read()).decode('utf-8')
         transformed = {
             "cv_id": str(random.randint(1000, 100000)),
             "profile": sections["Profile"],
@@ -63,6 +69,7 @@ class Processor:
             "experience": sections["Experiences"],
             "education": sections["Education"],
             "contact": sections["Contact Information"],
+            "cv_data": pdf_data,
             "metadata": {
                 "last_updated": datetime.now().strftime("%Y-%m-%dT%H:%M:%S"),
                 "file_name": pdf_path.split('/')[-1],

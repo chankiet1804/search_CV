@@ -5,7 +5,7 @@ from elasticsearch import Elasticsearch
 
 processor = Processor()
 elastic = ElasticHandler()
-pdf_path = './Data/Test1/CV10.pdf'
+pdf_path = './Data/Test1/CV1.pdf'
 # cv_data = processor.extract_text_from_pdf(pdf_path)
 # data_text = processor.clean_text(cv_data)
 # sections = processor.parse_resume(data_text)
@@ -23,5 +23,7 @@ pdf_path = './Data/Test1/CV10.pdf'
 
 # print(sections)
 
-# cv_data = processor.process_pdf(pdf_path)
+cv_data = processor.process_pdf(pdf_path)
 # doc_id = elastic.index_cv(cv_data)
+
+print(cv_data["cv_data"])

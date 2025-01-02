@@ -1,0 +1,178 @@
+<!-- templates/index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CV Search System</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100 min-h-screen p-8">
+    <div class="max-w-4xl mx-auto bg-white rounded-lg shadow-lg p-6">
+        <h1 class="text-2xl font-bold mb-6 text-center">CV Search System</h1>
+        
+        <!-- CV Upload Section -->
+        <div class="mb-8">
+            <h2 class="text-xl font-semibold mb-4">Upload CVs</h2>
+            <div class="border-2 border-dashed border-gray-300 rounded-lg p-4">
+                <input type="file" id="cvFiles" multiple accept=".pdf" class="hidden">
+                <label for="cvFiles" class="cursor-pointer block text-center p-4 text-gray-600">
+                    Click to upload PDF files or drag and drop them here
+                </label>
+                <div id="fileList" class="mt-4"></div>
+            </div>
+            <button id="uploadBtn" class="mt-4 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                Upload Files
+            </button>
+        </div>
+
+        <!-- Search Section -->
+        <div class="mb-8">
+            <h2 class="text-xl font-semibold mb-4">Search CVs</h2>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Job Requirements</label>
+                    <textarea id="requirements" class="mt-1 block w-full border rounded-md shadow-sm p-2" rows="3"></textarea>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Job Responsibilities</label>
+                    <textarea id="responsibilities" class="mt-1 block w-full border rounded-md shadow-sm p-2" rows="3"></textarea>
+                </div>
+                <button id="searchBtn" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+                    Search Matching CVs
+                </button>
+            </div>
+        </div>
+
+        <!-- Results Section -->
+        <div id="results" class="hidden">
+            <h2 class="text-xl font-semibold mb-4">Search Results</h2>
+            <div id="resultsList" class="space-y-4"></div>
+        </div>
+    </div>
+
+    <script>
+        // File Upload Handling
+        const fileInput = document.getElementById('cvFiles');
+        const fileList = document.getElementById('fileList');
+        const uploadBtn = document.getElementById('uploadBtn');
+
+        fileInput.addEventListener('change', updateFileList);
+        
+        function updateFileList() {
+            fileList.innerHTML = '';
+            Array.from(fileInput.files).forEach(file => {
+                const div = document.createElement('div');
+                div.className = 'text-sm text-gray-600';
+                div.textContent = file.name;
+                fileList.appendChild(div);
+            });
+        }
+
+        uploadBtn.addEventListener('click', async () => {
+            const files = fileInput.files;
+            if (files.length === 0) return;
+
+            const formData = new FormData();
+            Array.from(files).forEach(file => {
+                formData.append('files[]', file);
+            });
+
+            try {
+                uploadBtn.disabled = true;
+                uploadBtn.textContent = 'Uploading...';
+                
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                // Show upload results
+                const successCount = result.processed_files.filter(f => f.status === 'success').length;
+                alert(`Successfully uploaded ${successCount} files`);
+                
+                // Clear file input
+                fileInput.value = '';
+                fileList.innerHTML = '';
+            } catch (error) {
+                alert('Error uploading files: ' + error.message);
+            } finally {
+                uploadBtn.disabled = false;
+                uploadBtn.textContent = 'Upload Files';
+            }
+        });
+
+        // Search Handling
+        const searchBtn = document.getElementById('searchBtn');
+        const resultsDiv = document.getElementById('results');
+        const resultsList = document.getElementById('resultsList');
+
+        searchBtn.addEventListener('click', async () => {
+            const requirements = document.getElementById('requirements').value;
+            const responsibilities = document.getElementById('responsibilities').value;
+
+            try {
+                searchBtn.disabled = true;
+                searchBtn.textContent = 'Searching...';
+
+                const response = await fetch('/search', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        requirements,
+                        responsibilities
+                    })
+                });
+
+                const results = await response.json();
+                // print('-------------------------------------------------\n')
+                // if(results.length>0)
+                //     print(results)
+                // else
+                //     print("NO RESULTS")
+                // print('-------------------------------------------------\n')
+                displayResults(results);
+            } catch (error) {
+                alert('Error searching CVs: ' + error.message);
+            } finally {
+                searchBtn.disabled = false;
+                searchBtn.textContent = 'Search Matching CVs';
+            }
+        });
+
+        function displayResults(results) {
+            resultsList.innerHTML = '';
+            resultsDiv.classList.remove('hidden');
+
+            if (results.hits && results.hits.hits.length > 0) {
+                results.hits.hits.forEach(hit => {
+                    const div = document.createElement('div');
+                    div.className = 'bg-gray-50 p-4 rounded';
+                    
+                    const score = (hit._score * 100).toFixed(2);
+                    const fileName = hit._source.metadata.file_name;
+                    const cvId = hit._id; // Sử dụng cv_id làm doc_id
+
+                    div.innerHTML = `
+                        <div class="flex justify-between items-start">
+                            <h3 class="font-semibold">${fileName}</h3>
+                            <span class="text-sm text-gray-600">Match Score: ${score}%</span>
+                        </div>
+                        <div class="mt-2 text-sm">
+                            <div><strong>CV Preview:</strong> <a href="/pdf/${cvId}" target="_blank" class="text-blue-500">Click to download PDF</a></div>
+                        </div>
+                    `;
+                    
+                    resultsList.appendChild(div);
+                });
+            } else {
+                resultsList.innerHTML = '<div class="text-gray-600">No matching CVs found</div>';
+            }
+        }
+    </script>
+</body>
+</html>

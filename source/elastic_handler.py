@@ -1,6 +1,7 @@
 import logging
 from typing import Dict
 from elasticsearch import Elasticsearch
+import base64
 
 class ElasticHandler:
     def __init__(self, host: str = "localhost", port: int = 9200, index_name: str = "cvs", scheme: str = "http"):
@@ -53,6 +54,9 @@ class ElasticHandler:
                         "type": "text",
                         "analyzer": "cv_analyzer",
                         "search_analyzer": "cv_analyzer"
+                    },
+                    "cv_data":{
+                        "type" : "text"
                     },
                     "contact": {
                         "type": "text",
@@ -230,7 +234,15 @@ class ElasticHandler:
             query=final_query,
             highlight=highlight,
             size=size,
-            _source=["cv_id", "skills", "experience", "profile", "metadata"]
+            _source=["cv_id", "skills", "experience", "profile","cv_data", "metadata"]
         )
 
         return response
+    
+    def get_document(self, index, doc_id):
+        try:
+            response = self.es.get(index=index, id=doc_id)
+            return response
+        except Exception as e:
+            print("Error getting document:", e)
+            return None
