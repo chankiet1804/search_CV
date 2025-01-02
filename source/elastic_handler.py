@@ -41,39 +41,21 @@ class ElasticHandler:
                     },
                     "skills": {
                         "type": "text",
-                        "fields": {
-                            "keyword": {
-                                "type": "keyword"
-                            },
-                            "text": {
-                                "type": "text",
-                                "analyzer": "cv_analyzer"
-                            }
-                        }
+                        "analyzer": "cv_analyzer",
+                        "search_analyzer": "cv_analyzer"
                     },
                     "experience": {
-                        "type": "nested",
-                        "properties": {
-                            "title": {"type": "text"},
-                            "company": {"type": "text"},
-                            "duration": {"type": "text"},
-                            "description": {"type": "text"}
-                        }
+                        "type": "text",
+                        "analyzer": "cv_analyzer",
+                        "search_analyzer": "cv_analyzer"
                     },
                     "education": {
-                        "type": "nested",
-                        "properties": {
-                            "degree": {"type": "text"},
-                            "institution": {"type": "text"},
-                            "year": {"type": "text"}
-                        }
+                        "type": "text",
+                        "analyzer": "cv_analyzer",
+                        "search_analyzer": "cv_analyzer"
                     },
                     "contact": {
-                        "properties": {
-                            "email": {"type": "keyword"},
-                            "phone": {"type": "keyword"},
-                            "location": {"type": "text"}
-                        }
+                        "type": "text",
                     },
                     "metadata": {
                         "properties": {
