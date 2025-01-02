@@ -6,114 +6,64 @@ import os
 processor = Processor()
 elastic = ElasticHandler()
 
-#Process CV và index
-# cv_data1 = {
-#     "cv_id": "12345",
-#     "profile": "John Doe is a Python developer with experience in Elasticsearch and Machine Learning...",
-#     "skills": ["Python", "Elasticsearch", "Machine Learning"],
-#     "experience": [
-#         {
-#             "title": "Senior Python Developer",
-#             "company": "Tech Solutions Inc.",
-#             "duration": "2018-2023",
-#             "description": "Developed and maintained web applications, led a team of developers..."
-#         },
-#         {
-#             "title": "Machine Learning Engineer",
-#             "company": "AI Innovations",
-#             "duration": "2015-2018",
-#             "description": "Designed and implemented machine learning models, collaborated with data scientists..."
-#         }
-#     ],
-#     "education": [
-#         {
-#             "degree": "Master's in Computer Science",
-#             "institution": "University of Technology",
-#             "year": "2015-06-15"
-#         },
-#         {
-#             "degree": "Bachelor's in Information Technology",
-#             "institution": "State University",
-#             "year": "2013-06-15"
-#         }
-#     ],
-#     "contact": {
-#         "email": "johndoe@example.com",
-#         "phone": "123-456-7890",
-#         "location": "New York, USA"
-#     },
-#     "metadata": {
-#         "last_updated": "2023-12-01",
-#         "file_name": "john_doe_cv.pdf",
-#         "language": "English"
-#     }
-# }
-# cv_data2 = {
-#     "cv_id": "123",
-#     "profile": "Acknowledge Python and SQL",
-#     "skills": ["Elasticsearch", "Machine Learning"],
-#     "experience": [
-#         {
-#             "title": "SPython Developer",
-#             "company": "FPT",
-#             "duration": "2018-2023",
-#             "description": "Developed and maintained web applications, led a team of developers..."
-#         },
+# pdf_directory = './Data/Test1/'
+
+# for filename in os.listdir(pdf_directory):
+#     if filename.endswith('.pdf'):
+#         # Construct the full path to the PDF file
+#         pdf_path = os.path.join(pdf_directory, filename)
         
-#     ],
-#     "education": [
-#         {
-#             "degree": "Master's in Computer Science",
-#             "institution": "UIT",
-#             "year": "2015-06-15"
-#         },
-#     ],
-#     "contact": {
-#         "email": "hkaido@example.com",
-#         "phone": "04934923242",
-#         "location": "Nagasaki, Japan"
-#     },
-#     "metadata": {
-#         "last_updated": "2023-12-01",
-#         "file_name": "jhkaido_cv.pdf",
-#         "language": "English"
-#     }
-# }
-# pdf_path = './Data/Test1/CV1.pdf'
-# cv_data = processor.process_pdf(pdf_path)
-# pdf_path2 = './Data/Test1/CV2.pdf'
-# cv_data2 = processor.process_pdf(pdf_path2)
-# #transformed_data = transform.transform_data(cv_data,pdf_path)
-
-# # Index processed CV data
-# doc_id = elastic.index_cv(cv_data)
-# doc_id = elastic.index_cv(cv_data2)
-
-pdf_directory = './Data/Test1/'
-
-for filename in os.listdir(pdf_directory):
-    if filename.endswith('.pdf'):
-        # Construct the full path to the PDF file
-        pdf_path = os.path.join(pdf_directory, filename)
-        
-        # Index data
-        cv_data = processor.process_pdf(pdf_path)
-        doc_id = elastic.index_cv(cv_data)
+#         # Index data
+#         cv_data = processor.process_pdf(pdf_path)
+#         doc_id = elastic.index_cv(cv_data)
         
 
-jd_data = {
-    "About company": "Công ty ABC...",
-    "Objectives of this role": "Junio Software Developer",
-    "Responsibilities": "Participate in the full software development lifecycle, including analysis, design, test, and delivery",
-    "Required skills and qualifications": "SQL, Cloud, UI/UX, System design, Linux",
-    "Preferred skills and qualifications": "Docker"
-}
+#Thông tin từ JD với một số lỗi chính tả cố ý
+requirements = """
+- Recent graduate with a degree in Accounting, Finance, or a related field
+- Basic knowledge of accounting principles and practices
+- Familiarity with accounting software and tools (e.g., QuickBooks, Tally)
+- Strong analytical and problem-solving skills
+- Attention to detail and ability to manage financial data accurately
+- Proficiency in Microsoft Excel and other office tools
+"""
 
-# Search CVs
-#results = elastic.search_cv("Software Development Life Cycle")
-# results = elastic.search_cv_by_jd(jd_data,min_score=1.0)
-# print(results)
+responsibilities = """
+- Assist in preparing and maintaining financial records
+- Support in the preparation of financial reports and statements
+- Process invoices and manage accounts payable and receivable
+- Help in reconciling bank statements and maintaining general ledger
+- Assist with audits and ensure compliance with financial regulations
+- Collaborate with the finance team to improve accounting processes
+"""
 
-# print(transformed_data["skills"])
-# print("-------------------------------------------------------------------------------")
-# print(transformed_data["education"])
+results = elastic.search_cv_by_jd(
+    job_requirements=requirements,
+    job_responsibilities=responsibilities
+)
+
+def display_results(results):
+    print(f"Tìm thấy {results['hits']['total']['value']} kết quả\n")
+    
+    for hit in results['hits']['hits']:
+        print(f"CV ID: {hit['_source']['cv_id']}")
+        print(f"Score: {hit['_score']}")
+        
+        if 'highlight' in hit:
+            print("\nĐoạn văn phù hợp:")
+            for field, highlights in hit['highlight'].items():
+                print(f"\n{field.upper()}:")
+                for highlight in highlights:
+                    print(f"  • {highlight}")
+        
+        if 'metadata' in hit['_source']:
+            print("\nThông tin thêm:")
+            metadata = hit['_source']['metadata']
+            if 'language' in metadata:
+                print(f"Ngôn ngữ: {metadata['language']}")
+            if 'last_updated' in metadata:
+                print(f"Cập nhật lần cuối: {metadata['last_updated']}")
+        
+        print("\n" + "="*80 + "\n")
+
+display_results(results)

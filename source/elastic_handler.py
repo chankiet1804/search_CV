@@ -1,5 +1,5 @@
 import logging
-from typing import Dict, List
+from typing import Dict
 from elasticsearch import Elasticsearch
 
 class ElasticHandler:
@@ -108,154 +108,129 @@ class ElasticHandler:
             self.logger.error(f"Error indexing document: {str(e)}")
             raise
     
-    def search_cv(self, jd_query: str, size: int = 10) -> List[Dict]:
-        """Search CVs based on job description."""
+
+    def search_cv_by_jd(self, job_requirements: str,job_responsibilities : str, size: int = 5) :
+        """
+        Tìm kiếm CV dựa trên yêu cầu công việc và trách nhiệm công việc, có hỗ trợ fuzzy matching
+        
+        Args:
+            es_client: Elasticsearch client
+            index_name: Tên index chứa CV
+            job_requirements: Các kỹ năng yêu cầu từ JD
+            job_responsibilities: Các trách nhiệm công việc từ JD
+            size: Số lượng kết quả trả về
+        """
         query = {
             "bool": {
                 "should": [
                     {
+                        "multi_match": {
+                            "query": job_requirements,
+                            "fields": [
+                                "skills^3",
+                                "experience^2",
+                                "profile"
+                            ],
+                            "type": "best_fields",
+                            "operator": "or",
+                            "minimum_should_match": "70%",
+                            "fuzziness": "AUTO",
+                            "prefix_length": 2,  # Số ký tự đầu tiên phải khớp chính xác
+                            "max_expansions": 50,  # Số lượng từ biến thể tối đa cho mỗi term
+                            "fuzzy_transpositions": True  # Cho phép hoán đổi 2 ký tự liền kề
+                        }
+                    },
+                    {
+                        "multi_match": {
+                            "query": job_responsibilities,
+                            "fields": [
+                                "experience^3",
+                                "profile^2",
+                                "skills"
+                            ],
+                            "type": "best_fields",
+                            "operator": "or",
+                            "minimum_should_match": "60%",
+                            "fuzziness": "AUTO",
+                            "prefix_length": 2,
+                            "max_expansions": 50,
+                            "fuzzy_transpositions": True
+                        }
+                    }
+                ],
+                "minimum_should_match": 1
+            }
+        }
+
+        # Thêm synonyms query để bắt các từ đồng nghĩa và viết tắt phổ biến
+        synonyms_query = {
+            "bool": {
+                "should": [
+                    {
                         "match": {
-                            "profile": {
-                                "query": jd_query,
-                                "boost": 1.0
+                            "skills": {
+                                "query": job_requirements,
+                                "fuzziness": "AUTO",
+                                "prefix_length": 2,
+                                "operator": "or"
                             }
                         }
                     },
                     {
                         "match": {
-                            "skills.text": {
-                                "query": jd_query,
-                                "boost": 2.0
-                            }
-                        }
-                    },
-                    {
-                        "nested": {
-                            "path": "experience",
-                            "query": {
-                                "match": {
-                                    "experience.description": {
-                                        "query": jd_query,
-                                        "boost": 1.5
-                                    }
-                                }
+                            "experience": {
+                                "query": job_responsibilities,
+                                "fuzziness": "AUTO",
+                                "prefix_length": 2,
+                                "operator": "or"
                             }
                         }
                     }
                 ]
             }
         }
-        
-        try:
-            # Đặt truy vấn bên trong đối tượng 'body'
-            response = self.es.search(index=self.index_name, body={"query": query}, size=size)
-            return [hit['_source'] for hit in response['hits']['hits']]
-        except Exception as e:
-            self.logger.error(f"Error searching documents: {str(e)}")
-            raise
 
-    def search_cv_by_jd(self, jd_data: Dict, size: int = 10, min_score: float = 1.0) -> List[Dict]:
-        """Search CVs based on job description data with enhanced matching."""
-        
-        # Tách required skills thành list và chuẩn hóa
-        required_skills = [
-            skill.strip().lower() 
-            for skill in jd_data.get('Required skills and qualifications', '').split(',')
-            if skill.strip()
-        ]
-        
-        query = {
+        # Kết hợp queries
+        final_query = {
             "bool": {
-                "should": [  # Sử dụng should thay vì must để linh hoạt hơn
-                    # Match với required skills (trọng số cao nhất)
-                    {
-                        "terms": {
-                            "skills.keyword": required_skills,
-                            "boost": 2.0  # Giảm xuống từ 3.0
-                        }
-                    },
-                    # Match với profile
-                    {
-                        "match": {
-                            "profile": {
-                                "query": f"{jd_data.get('Objectives of this role', '')} {jd_data.get('Responsibilities', '')}",
-                                "operator": "or",  # Thay đổi từ and sang or
-                                "minimum_should_match": "30%",  # Giảm xuống từ 70%
-                                "boost": 1.0
-                            }
-                        }
-                    },
-                    # Match với preferred skills
-                    {
-                        "match": {
-                            "skills.text": {
-                                "query": jd_data.get('Preferred skills and qualifications', ''),
-                                "boost": 1.5
-                            }
-                        }
-                    },
-                    # Match với experience
-                    {
-                        "nested": {
-                            "path": "experience",
-                            "query": {
-                                "bool": {
-                                    "should": [
-                                        {
-                                            "match": {  # Đổi từ match_phrase sang match
-                                                "experience.title": {
-                                                    "query": jd_data.get('Objectives of this role', ''),
-                                                    "boost": 1.5
-                                                }
-                                            }
-                                        },
-                                        {
-                                            "match": {
-                                                "experience.description": {
-                                                    "query": f"{jd_data.get('Responsibilities', '')} {jd_data.get('Required skills and qualifications', '')}",
-                                                    "operator": "or",  # Thay đổi từ and sang or
-                                                    "minimum_should_match": "30%",  # Giảm xuống từ 60%
-                                                    "boost": 1.0
-                                                }
-                                            }
-                                        }
-                                    ]
-                                }
-                            },
-                            "score_mode": "max"  # Thay đổi từ avg sang max
-                        }
-                    }
+                "should": [
+                    query,
+                    synonyms_query
                 ],
-                "minimum_should_match": 1  # Giảm xuống từ 2, chỉ cần match 1 điều kiện
+                "minimum_should_match": 1
             }
         }
-        
-        try:
-            response = self.es.search(
-                index=self.index_name,
-                body={
-                    "query": query,
-                    "min_score": min_score,
-                    "_source": True,
-                    "sort": [
-                        {"_score": {"order": "desc"}}
-                    ]
+
+        # Highlight configuration
+        highlight = {
+            "fields": {
+                "skills": {
+                    "number_of_fragments": 3,
+                    "fragment_size": 150,
+                    "pre_tags": ["<strong>"],
+                    "post_tags": ["</strong>"]
                 },
-                size=size
-            )
-            
-            # Thêm debug info
-            self.logger.info(f"Total hits: {response['hits']['total']['value']}")
-            self.logger.info(f"Max score: {response['hits']['max_score']}")
-            
-            results = []
-            for hit in response['hits']['hits']:
-                result = hit['_source']
-                result['search_score'] = hit['_score']
-                results.append(result)
-                
-            return results
-            
-        except Exception as e:
-            self.logger.error(f"Error searching documents: {str(e)}")
-            raise
+                "experience": {
+                    "number_of_fragments": 3,
+                    "fragment_size": 150,
+                    "pre_tags": ["<strong>"],
+                    "post_tags": ["</strong>"]
+                },
+                "profile": {
+                    "number_of_fragments": 3,
+                    "fragment_size": 150,
+                    "pre_tags": ["<strong>"],
+                    "post_tags": ["</strong>"]
+                }
+            }
+        }
+
+        response = self.es.search(
+            index=self.index_name,
+            query=final_query,
+            highlight=highlight,
+            size=size,
+            _source=["cv_id", "skills", "experience", "profile", "metadata"]
+        )
+
+        return response
